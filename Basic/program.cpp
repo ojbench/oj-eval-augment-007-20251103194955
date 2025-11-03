@@ -9,53 +9,111 @@
  */
 
 #include "program.hpp"
+#include "Utils/error.hpp"
+
 
 
 
 Program::Program() = default;
 
-Program::~Program() = default;
+Program::~Program() { clear(); }
 
 void Program::clear() {
-    // Replace this stub with your own code
-    //todo
+    for (auto &p : parsedStmts) {
+        delete p.second;
+    }
+    parsedStmts.clear();
+    sourceLines.clear();
+    resetControl();
 }
 
 void Program::addSourceLine(int lineNumber, const std::string &line) {
-    // Replace this stub with your own code
-    //todo
+    sourceLines[lineNumber] = line;
+    auto it = parsedStmts.find(lineNumber);
+    if (it != parsedStmts.end()) {
+        delete it->second;
+        parsedStmts.erase(it);
+    }
 }
 
 void Program::removeSourceLine(int lineNumber) {
-    // Replace this stub with your own code
-    //todo
+    auto itLine = sourceLines.find(lineNumber);
+    if (itLine != sourceLines.end()) {
+        sourceLines.erase(itLine);
+    }
+    auto it = parsedStmts.find(lineNumber);
+    if (it != parsedStmts.end()) {
+        delete it->second;
+        parsedStmts.erase(it);
+    }
 }
 
 std::string Program::getSourceLine(int lineNumber) {
-    // Replace this stub with your own code
-    //todo
+    auto it = sourceLines.find(lineNumber);
+    if (it == sourceLines.end()) return "";
+    return it->second;
 }
 
 void Program::setParsedStatement(int lineNumber, Statement *stmt) {
-    // Replace this stub with your own code
-    //todo
+    if (sourceLines.find(lineNumber) == sourceLines.end()) {
+        delete stmt;
+        error("LINE NUMBER ERROR");
+    }
+    auto it = parsedStmts.find(lineNumber);
+    if (it != parsedStmts.end()) {
+        delete it->second;
+        it->second = stmt;
+    } else {
+        parsedStmts.emplace(lineNumber, stmt);
+    }
 }
 
 //void Program::removeSourceLine(int lineNumber) {
 
 Statement *Program::getParsedStatement(int lineNumber) {
-   // Replace this stub with your own code
-   //todo
+    auto it = parsedStmts.find(lineNumber);
+    if (it == parsedStmts.end()) return nullptr;
+    return it->second;
 }
 
 int Program::getFirstLineNumber() {
-    // Replace this stub with your own code
-    //todo
+    if (sourceLines.empty()) return -1;
+    return sourceLines.begin()->first;
 }
 
 int Program::getNextLineNumber(int lineNumber) {
-    // Replace this stub with your own code
-    //todo
+    auto it = sourceLines.upper_bound(lineNumber);
+    if (it == sourceLines.end()) return -1;
+    return it->first;
+}
+
+
+// Control-flow helpers
+void Program::requestJump(int lineNumber) {
+    pendingJump = lineNumber;
+}
+
+bool Program::hasJump() const {
+    return pendingJump != -2;
+}
+
+int Program::consumeJump() {
+    int t = pendingJump;
+    pendingJump = -2;
+    return t;
+}
+
+void Program::requestStop() {
+    stopFlag = true;
+}
+
+bool Program::stopRequested() const {
+    return stopFlag;
+}
+
+void Program::resetControl() {
+    pendingJump = -2;
+    stopFlag = false;
 }
 
 //more func to add
